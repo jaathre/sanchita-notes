@@ -4,7 +4,7 @@ import { useStorage } from './services/storageService';
 import { Note, Folder, ViewState, Theme } from './types';
 import BottomNav from './components/BottomNav';
 import NoteCard from './components/NoteCard';
-import { ChevronLeftIcon, SearchIcon, TrashIcon, FolderIcon, HashIcon, CheckIcon, RestoreIcon, SelectIcon, ChevronDownIcon, ChevronUpIcon, XIcon, CheckCircleIcon, CircleIcon, MoreVerticalIcon } from './components/Icons';
+import { ChevronLeftIcon, SearchIcon, TrashIcon, FolderIcon, HashIcon, CheckIcon, RestoreIcon, SelectIcon, ChevronDownIcon, ChevronUpIcon, XIcon, CheckCircleIcon, CircleIcon, MoreVerticalIcon, CopyIcon } from './components/Icons';
 
 // --- Helper Functions ---
 
@@ -58,7 +58,7 @@ const TopBar: React.FC<{
     };
 
     return (
-        <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur z-40 px-4 h-14 border-b border-surfaceHighlight flex items-center justify-between transition-all">
+        <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur z-50 px-4 h-14 border-b border-surfaceHighlight flex items-center justify-between transition-all">
             {isSearchOpen ? (
                 <div className="flex-1 flex items-center animate-fade-in">
                     <input 
@@ -180,15 +180,32 @@ const EditorView: React.FC<{
   // Folder Selector State
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
   const [folderInputValue, setFolderInputValue] = useState('');
+  const folderWrapperRef = useRef<HTMLDivElement>(null);
 
   // Menu & Modal State
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const { derivedTags } = parseMetadataFromText(content);
     setDerivedTags(derivedTags);
   }, [content]);
+
+  // Handle clicks outside dropdowns to close them
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (folderWrapperRef.current && !folderWrapperRef.current.contains(event.target as Node)) {
+            setIsFolderMenuOpen(false);
+        }
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            setShowMenu(false);
+        }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const finalTags = useMemo(() => {
       return [...new Set([...manualTags, ...derivedTags])];
@@ -216,9 +233,27 @@ const EditorView: React.FC<{
         // Remove the trigger word from content
         const newContent = val.slice(0, val.lastIndexOf(fullMatch)) + val.slice(val.lastIndexOf(fullMatch) + fullMatch.length);
         setContent(newContent);
-    } else {
-        setContent(val);
+        return;
+    } 
+
+    // Inline Tag Extraction Logic: matches "#tag "
+    const tagMatch = val.match(/#([a-zA-Z0-9_-]+)(\s)$/);
+
+    if (tagMatch) {
+        const tagName = tagMatch[1].toLowerCase();
+        const fullMatch = tagMatch[0];
+
+        if (!manualTags.includes(tagName)) {
+            setManualTags(prev => [...prev, tagName]);
+        }
+
+        // Remove the trigger word from content
+        const newContent = val.slice(0, val.lastIndexOf(fullMatch)) + val.slice(val.lastIndexOf(fullMatch) + fullMatch.length);
+        setContent(newContent);
+        return;
     }
+    
+    setContent(val);
   };
 
   const handleSave = () => {
@@ -295,12 +330,12 @@ const EditorView: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-background z-[60] flex flex-col h-full animate-slide-up">
-      {/* Top Bar for Editor */}
-      <div className="relative flex items-center justify-between px-4 py-3 bg-background border-b border-surfaceHighlight z-30 shadow-sm shrink-0">
+      {/* Top Bar for Editor - Z-Index increased to 50 to stay above folder row */}
+      <div className="relative flex items-center justify-between px-4 py-3 bg-background border-b border-surfaceHighlight z-50 shadow-sm shrink-0">
         <button onClick={onClose} className="p-2 -ml-2 text-textMuted hover:text-textMain">
           <ChevronLeftIcon />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" ref={menuRef}>
             <button onClick={handleSave} className="p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 active:bg-primary/40 transition-colors">
                 <CheckIcon size={20} />
             </button>
@@ -315,6 +350,15 @@ const EditorView: React.FC<{
             {showMenu && (
                 <div className="absolute top-14 right-4 bg-surface border border-surfaceHighlight rounded-xl shadow-2xl z-[70] min-w-[160px] animate-fade-in overflow-hidden flex flex-col">
                     <button 
+                        onClick={() => {
+                            navigator.clipboard.writeText(content);
+                            setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-textMain hover:bg-surfaceHighlight flex items-center gap-2 transition-colors border-b border-surfaceHighlight/50"
+                    >
+                        <CopyIcon size={18}/> <span className="font-medium text-sm">Copy Text</span>
+                    </button>
+                    <button 
                         onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }}
                         className="w-full text-left px-4 py-3 text-red-400 hover:bg-surfaceHighlight flex items-center gap-2 transition-colors"
                     >
@@ -328,7 +372,7 @@ const EditorView: React.FC<{
       <div className="flex-1 flex flex-col overflow-hidden relative">
           <div className="relative z-40 bg-surface/50 border-b border-surfaceHighlight shrink-0">
                 {/* Row 1: Folder Input */}
-                <div className="flex items-center px-4 py-2 gap-2 relative">
+                <div ref={folderWrapperRef} className="flex items-center px-4 py-2 gap-2 relative">
                     <FolderIcon size={18} className="text-textMuted shrink-0" />
                     <div className="flex-1 flex overflow-x-auto gap-2 no-scrollbar items-center">
                         {manualFolderIds.map(fid => {
