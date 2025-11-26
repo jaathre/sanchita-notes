@@ -127,10 +127,12 @@ const HighlightedEditor: React.FC<{
 
   const renderHighlights = (text: string) => {
     if (!text) return <span className="text-textMain"> </span>; 
-    const parts = text.split(/(@[\w-]+|#[\w-]+)/g);
+    const parts = text.split(/((?:^|\s)(?:@|#)[\w-]+)/g);
     return parts.map((part, index) => {
-        if (part.startsWith('@')) return <span key={index} className="text-blue-500 font-bold">{part}</span>;
-        if (part.startsWith('#')) return <span key={index} className="text-primary font-bold">{part}</span>;
+        // We trim to check the token but render the original part to preserve whitespace
+        const trimmed = part.trim();
+        if (trimmed.startsWith('@')) return <span key={index} className="text-blue-500 font-bold">{part}</span>;
+        if (trimmed.startsWith('#')) return <span key={index} className="text-primary font-bold">{part}</span>;
         return <span key={index} className="text-textMain">{part}</span>;
     });
   };
@@ -220,11 +222,14 @@ const EditorView: React.FC<{
   const getFolder = (id: string) => folders.find(f => f.id === id);
 
   const handleContentChange = (val: string) => {
-    // Inline Folder Extraction Logic: matches "@folder "
-    const folderMatch = val.match(/@([a-zA-Z0-9_-]+)(\s)$/); 
+    // Inline Folder Extraction Logic
+    // Matches: Start of string or whitespace, followed by @name, followed by whitespace
+    // Capture groups: 1=prefix (space/start), 2=name
+    const folderMatch = val.match(/(^|\s)@([a-zA-Z0-9_-]+)\s$/); 
     
-    if (folderMatch) {
-        const folderName = folderMatch[1];
+    if (folderMatch && folderMatch.index !== undefined) {
+        const prefix = folderMatch[1]; // The whitespace before the @
+        const folderName = folderMatch[2];
         const fullMatch = folderMatch[0]; 
 
         let targetFolder = folders.find(f => f.name.toLowerCase() === folderName.toLowerCase());
@@ -236,25 +241,27 @@ const EditorView: React.FC<{
             setManualFolderIds(prev => [...prev, targetFolder!.id]);
         }
 
-        // Remove the trigger word from content
-        const newContent = val.slice(0, val.lastIndexOf(fullMatch)) + val.slice(val.lastIndexOf(fullMatch) + fullMatch.length);
+        // Remove the trigger word from content but preserve the prefix if it was a newline/space
+        // We effectively replace " @folder " with " "
+        const newContent = val.slice(0, folderMatch.index) + prefix + val.slice(folderMatch.index + fullMatch.length);
         setContent(newContent);
         return;
     } 
 
-    // Inline Tag Extraction Logic: matches "#tag "
-    const tagMatch = val.match(/#([a-zA-Z0-9_-]+)(\s)$/);
+    // Inline Tag Extraction Logic
+    // Matches: Start of string or whitespace, followed by #name, followed by whitespace
+    const tagMatch = val.match(/(^|\s)#([a-zA-Z0-9_-]+)\s$/);
 
-    if (tagMatch) {
-        const tagName = tagMatch[1].toLowerCase();
+    if (tagMatch && tagMatch.index !== undefined) {
+        const prefix = tagMatch[1];
+        const tagName = tagMatch[2].toLowerCase();
         const fullMatch = tagMatch[0];
 
         if (!manualTags.includes(tagName)) {
             setManualTags(prev => [...prev, tagName]);
         }
 
-        // Remove the trigger word from content
-        const newContent = val.slice(0, val.lastIndexOf(fullMatch)) + val.slice(val.lastIndexOf(fullMatch) + fullMatch.length);
+        const newContent = val.slice(0, tagMatch.index) + prefix + val.slice(tagMatch.index + fullMatch.length);
         setContent(newContent);
         return;
     }
