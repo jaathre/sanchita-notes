@@ -30,10 +30,20 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, isSelectionMode, isS
          </div>
       )}
 
-      {/* Content Preview only */}
-      <p className={`text-textMain text-base leading-relaxed line-clamp-3 ${isSelectionMode ? 'pr-8' : ''}`}>
-        {note.content || <span className="italic opacity-50">Empty note</span>}
-      </p>
+      <div className={isSelectionMode ? 'pr-8' : ''}>
+          {note.title ? (
+              <>
+                  <h3 className="text-textMain font-bold text-lg mb-1 line-clamp-1">{note.title}</h3>
+                  <p className="text-textMuted text-sm leading-relaxed line-clamp-2">
+                    {note.content || <span className="italic opacity-50">No additional text</span>}
+                  </p>
+              </>
+          ) : (
+              <p className="text-textMain text-base leading-relaxed line-clamp-3">
+                {note.content || <span className="italic opacity-50">Empty note</span>}
+              </p>
+          )}
+      </div>
     </div>
   );
 };

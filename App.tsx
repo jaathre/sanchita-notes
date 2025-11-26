@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useStorage } from './services/storageService';
 import { Note, Folder, ViewState, Theme } from './types';
@@ -176,6 +177,7 @@ const EditorView: React.FC<{
   onDelete: (id: string) => void;
   createFolder: (name: string) => Folder;
 }> = ({ note, folders, folderCounts, onSave, onClose, onDelete, createFolder }) => {
+  const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content);
   const [manualFolderIds, setManualFolderIds] = useState<string[]>(note.folderIds || []);
   const [manualTags, setManualTags] = useState<string[]>(note.tags || []);
@@ -183,7 +185,7 @@ const EditorView: React.FC<{
   const [tagInput, setTagInput] = useState('');
   
   // State to toggle between View and Edit mode
-  const [isEditing, setIsEditing] = useState(!note.content);
+  const [isEditing, setIsEditing] = useState(!note.content && !note.title);
   
   // Folder Selector State
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
@@ -223,8 +225,6 @@ const EditorView: React.FC<{
 
   const handleContentChange = (val: string) => {
     // Inline Folder Extraction Logic
-    // Matches: Start of string or whitespace, followed by @name, followed by whitespace
-    // Capture groups: 1=prefix (space/start), 2=name
     const folderMatch = val.match(/(^|\s)@([a-zA-Z0-9_-]+)\s$/); 
     
     if (folderMatch && folderMatch.index !== undefined) {
@@ -242,14 +242,12 @@ const EditorView: React.FC<{
         }
 
         // Remove the trigger word from content but preserve the prefix if it was a newline/space
-        // We effectively replace " @folder " with " "
         const newContent = val.slice(0, folderMatch.index) + prefix + val.slice(folderMatch.index + fullMatch.length);
         setContent(newContent);
         return;
     } 
 
     // Inline Tag Extraction Logic
-    // Matches: Start of string or whitespace, followed by #name, followed by whitespace
     const tagMatch = val.match(/(^|\s)#([a-zA-Z0-9_-]+)\s$/);
 
     if (tagMatch && tagMatch.index !== undefined) {
@@ -272,7 +270,7 @@ const EditorView: React.FC<{
   const handleSave = () => {
     onSave({
       ...note,
-      title: '', 
+      title: title.trim(),
       content,
       folderIds: manualFolderIds,
       tags: finalTags,
@@ -345,7 +343,7 @@ const EditorView: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-background z-[60] flex flex-col h-dvh animate-slide-up">
-      {/* Top Bar for Editor - Z-Index increased to 50 to stay above folder row */}
+      {/* Top Bar for Editor */}
       <div className="relative pt-safe bg-background border-b border-surfaceHighlight z-50 shadow-sm shrink-0">
         <div className="h-14 flex items-center justify-between px-4">
             <button onClick={onClose} className="p-2 -ml-2 text-textMuted hover:text-textMain">
@@ -401,6 +399,18 @@ const EditorView: React.FC<{
 
       <div className="flex-1 flex flex-col overflow-hidden relative pb-safe">
           <div className="relative z-40 bg-surface/50 border-b border-surfaceHighlight shrink-0">
+                {/* Row 0: Title Input */}
+                <div className="px-5 py-3 border-b border-surfaceHighlight/50">
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder={isEditing ? "Title" : ""}
+                        readOnly={!isEditing}
+                        className="w-full bg-transparent text-xl font-bold text-textMain placeholder-textMuted/50 outline-none"
+                    />
+                </div>
+
                 {/* Row 1: Folder Input */}
                 <div ref={folderWrapperRef} className="flex items-center px-4 py-2 gap-2 relative">
                     <FolderIcon size={18} className="text-textMuted shrink-0" />
@@ -444,7 +454,7 @@ const EditorView: React.FC<{
                             {folderInputValue && !sortedFolders.some(f => f.name.toLowerCase() === folderInputValue.toLowerCase()) && (
                                 <button 
                                     onMouseDown={(e) => {
-                                        e.preventDefault(); // Prevent blur before click
+                                        e.preventDefault(); 
                                         const newFolder = createFolder(folderInputValue);
                                         toggleFolder(newFolder.id);
                                         setFolderInputValue('');
@@ -489,7 +499,7 @@ const EditorView: React.FC<{
             <HighlightedEditor 
                 content={content} 
                 onChange={handleContentChange} 
-                placeholder={isEditing ? "Start typing... use @folder or #tag" : ""}
+                placeholder={isEditing ? "Start typing..." : ""}
                 readOnly={!isEditing}
             />
           </div>
@@ -580,7 +590,11 @@ const App = () => {
 
       if (searchQuery) {
           const q = searchQuery.toLowerCase();
-          filtered = filtered.filter(n => n.content.toLowerCase().includes(q) || (n.summary && n.summary.toLowerCase().includes(q)));
+          filtered = filtered.filter(n => 
+              n.content.toLowerCase().includes(q) || 
+              (n.summary && n.summary.toLowerCase().includes(q)) || 
+              (n.title && n.title.toLowerCase().includes(q))
+          );
       }
 
       return filtered.sort((a, b) => b.updatedAt - a.updatedAt);
