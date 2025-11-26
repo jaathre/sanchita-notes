@@ -4,7 +4,7 @@ import { useStorage } from './services/storageService';
 import { Note, Folder, ViewState, Theme } from './types';
 import BottomNav from './components/BottomNav';
 import NoteCard from './components/NoteCard';
-import { ChevronLeftIcon, SearchIcon, TrashIcon, FolderIcon, HashIcon, CheckIcon, RestoreIcon, SelectIcon, ChevronDownIcon, ChevronUpIcon, XIcon, CheckCircleIcon, CircleIcon, MoreVerticalIcon, CopyIcon } from './components/Icons';
+import { ChevronLeftIcon, SearchIcon, TrashIcon, FolderIcon, HashIcon, CheckIcon, RestoreIcon, SelectIcon, ChevronDownIcon, ChevronUpIcon, XIcon, CheckCircleIcon, CircleIcon, MoreVerticalIcon, CopyIcon, EditIcon } from './components/Icons';
 
 // --- Helper Functions ---
 
@@ -113,7 +113,8 @@ const HighlightedEditor: React.FC<{
   content: string;
   onChange: (val: string) => void;
   placeholder?: string;
-}> = ({ content, onChange, placeholder }) => {
+  readOnly?: boolean;
+}> = ({ content, onChange, placeholder, readOnly }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
 
@@ -151,9 +152,10 @@ const HighlightedEditor: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             onScroll={handleScroll}
             placeholder={placeholder}
+            readOnly={readOnly}
             className={`absolute inset-0 w-full h-full bg-transparent p-5 text-textMain outline-none resize-none z-10 ${fontClasses}`}
             style={{ color: 'transparent', caretColor: 'rgb(var(--color-text-main))' }} 
-            autoFocus
+            autoFocus={!readOnly}
             spellCheck={false}
         />
     </div>
@@ -176,6 +178,9 @@ const EditorView: React.FC<{
   const [manualTags, setManualTags] = useState<string[]>(note.tags || []);
   const [derivedTags, setDerivedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  
+  // State to toggle between View and Edit mode
+  const [isEditing, setIsEditing] = useState(!note.content);
   
   // Folder Selector State
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
@@ -282,6 +287,7 @@ const EditorView: React.FC<{
   }, [folders, folderCounts]);
 
   const toggleFolder = (id: string) => {
+      if (!isEditing) return;
       if (manualFolderIds.includes(id)) {
           setManualFolderIds(manualFolderIds.filter(fid => fid !== id));
       } else {
@@ -325,6 +331,7 @@ const EditorView: React.FC<{
   };
 
   const removeTag = (t: string) => {
+      if (!isEditing) return;
       setManualTags(manualTags.filter(tag => tag !== t));
   };
 
@@ -336,9 +343,11 @@ const EditorView: React.FC<{
           <ChevronLeftIcon />
         </button>
         <div className="flex items-center gap-2" ref={menuRef}>
-            <button onClick={handleSave} className="p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 active:bg-primary/40 transition-colors">
-                <CheckIcon size={20} />
-            </button>
+            {isEditing && (
+                <button onClick={handleSave} className="p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 active:bg-primary/40 transition-colors">
+                    <CheckIcon size={20} />
+                </button>
+            )}
             <button 
                 onClick={() => setShowMenu(!showMenu)}
                 className={`p-2 rounded-full transition-colors ${showMenu ? 'bg-surfaceHighlight text-textMain' : 'text-textMuted hover:text-textMain'}`}
@@ -349,6 +358,17 @@ const EditorView: React.FC<{
             {/* Dropdown Menu */}
             {showMenu && (
                 <div className="absolute top-14 right-4 bg-surface border border-surfaceHighlight rounded-xl shadow-2xl z-[70] min-w-[160px] animate-fade-in overflow-hidden flex flex-col">
+                    {!isEditing && (
+                        <button 
+                            onClick={() => {
+                                setIsEditing(true);
+                                setShowMenu(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-textMain hover:bg-surfaceHighlight flex items-center gap-2 transition-colors border-b border-surfaceHighlight/50"
+                        >
+                            <EditIcon size={18}/> <span className="font-medium text-sm">Edit Note</span>
+                        </button>
+                    )}
                     <button 
                         onClick={() => {
                             navigator.clipboard.writeText(content);
@@ -379,25 +399,27 @@ const EditorView: React.FC<{
                             const f = getFolder(fid);
                             if (!f) return null;
                             return (
-                                <span key={fid} onClick={() => toggleFolder(fid)} className="flex items-center gap-1 bg-surfaceHighlight text-xs px-2 py-1 rounded-full cursor-pointer whitespace-nowrap">
-                                    {f.name} <XIcon size={12}/>
+                                <span key={fid} onClick={() => toggleFolder(fid)} className={`flex items-center gap-1 bg-surfaceHighlight text-xs px-2 py-1 rounded-full whitespace-nowrap ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}>
+                                    {f.name} {isEditing && <XIcon size={12}/>}
                                 </span>
                             );
                         })}
-                        <input 
-                            type="text"
-                            value={folderInputValue}
-                            onFocus={() => setIsFolderMenuOpen(true)}
-                            onChange={(e) => {
-                                setFolderInputValue(e.target.value);
-                                setIsFolderMenuOpen(true);
-                            }}
-                            onKeyDown={handleFolderInputKeyDown}
-                            placeholder={manualFolderIds.length === 0 ? "Add folder..." : ""}
-                            className="bg-transparent text-sm text-textMain outline-none min-w-[100px] flex-1"
-                        />
+                        {isEditing && (
+                            <input 
+                                type="text"
+                                value={folderInputValue}
+                                onFocus={() => setIsFolderMenuOpen(true)}
+                                onChange={(e) => {
+                                    setFolderInputValue(e.target.value);
+                                    setIsFolderMenuOpen(true);
+                                }}
+                                onKeyDown={handleFolderInputKeyDown}
+                                placeholder={manualFolderIds.length === 0 ? "Add folder..." : ""}
+                                className="bg-transparent text-sm text-textMain outline-none min-w-[100px] flex-1"
+                            />
+                        )}
                     </div>
-                    {isFolderMenuOpen && (
+                    {isEditing && isFolderMenuOpen && (
                         <div className="absolute top-full left-0 right-0 max-h-40 overflow-y-auto bg-surface border-b border-surfaceHighlight shadow-lg animate-fade-in z-50">
                             {sortedFolders.filter(f => f.name.toLowerCase().includes(folderInputValue.toLowerCase())).map(f => (
                                 <button 
@@ -434,19 +456,21 @@ const EditorView: React.FC<{
                         {finalTags.map(tag => (
                             <span key={tag} className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1 ${derivedTags.includes(tag) && !manualTags.includes(tag) ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surfaceHighlight text-textMain'}`}>
                                 #{tag}
-                                {manualTags.includes(tag) && (
+                                {isEditing && manualTags.includes(tag) && (
                                     <button onClick={() => removeTag(tag)} className="ml-1 hover:text-red-400"><XIcon size={12}/></button>
                                 )}
                             </span>
                         ))}
-                         <input 
-                            type="text"
-                            value={tagInput}
-                            onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={handleTagKeyDown}
-                            placeholder={finalTags.length === 0 ? "Add tags..." : ""}
-                            className="bg-transparent text-sm text-textMain outline-none min-w-[80px] flex-1"
-                        />
+                        {isEditing && (
+                             <input 
+                                type="text"
+                                value={tagInput}
+                                onChange={(e) => setTagInput(e.target.value)}
+                                onKeyDown={handleTagKeyDown}
+                                placeholder={finalTags.length === 0 ? "Add tags..." : ""}
+                                className="bg-transparent text-sm text-textMain outline-none min-w-[80px] flex-1"
+                            />
+                        )}
                     </div>
                 </div>
           </div>
@@ -455,7 +479,8 @@ const EditorView: React.FC<{
             <HighlightedEditor 
                 content={content} 
                 onChange={handleContentChange} 
-                placeholder="Start typing... use @folder or #tag"
+                placeholder={isEditing ? "Start typing... use @folder or #tag" : ""}
+                readOnly={!isEditing}
             />
           </div>
       </div>
@@ -660,31 +685,35 @@ const App = () => {
       // Default List View (Home/Folders/Tags)
       if (view === 'folders' && !activeFolderId) {
           return (
-              <div className="grid grid-cols-2 gap-3 p-4 pt-20 pb-24">
+              <div className="grid grid-cols-3 gap-4 p-4 pt-20 pb-24">
                   {folders.map(folder => (
-                      <div 
+                      <button 
                         key={folder.id} 
                         onClick={() => setActiveFolderId(folder.id)}
-                        className="bg-surface border border-surfaceHighlight p-4 rounded-xl hover:border-primary/50 cursor-pointer transition-all aspect-square flex flex-col items-center justify-center gap-3 group"
+                        className="flex flex-col items-center justify-start gap-2 p-2 rounded-xl hover:bg-surfaceHighlight/50 transition-colors group text-center"
                       >
-                          <div className="w-12 h-12 rounded-full bg-surfaceHighlight flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <FolderIcon size={24} />
+                          <div className="relative">
+                            <FolderIcon size={56} fill="currentColor" className="text-amber-400 opacity-90 group-hover:opacity-100 transition-opacity" />
+                            <span className="absolute -top-1 -right-1 bg-surfaceHighlight border border-background text-[10px] text-textMuted px-1.5 rounded-full shadow-sm">
+                                {folderCounts[folder.id] || 0}
+                            </span>
                           </div>
-                          <div className="text-center">
-                              <h3 className="font-medium text-textMain truncate max-w-[120px]">{folder.name}</h3>
-                              <span className="text-xs text-textMuted">{folderCounts[folder.id] || 0} notes</span>
-                          </div>
-                      </div>
+                          <span className="text-xs font-medium text-textMain line-clamp-2 w-full break-words leading-tight">
+                              {folder.name}
+                          </span>
+                      </button>
                   ))}
                   <button 
                     onClick={() => {
                         const name = prompt("New Folder Name:");
                         if (name) createFolder(name);
                     }}
-                    className="border border-dashed border-surfaceHighlight p-4 rounded-xl hover:bg-surfaceHighlight/50 cursor-pointer transition-all aspect-square flex flex-col items-center justify-center gap-2 text-textMuted hover:text-primary"
+                    className="flex flex-col items-center justify-start gap-2 p-2 rounded-xl hover:bg-surfaceHighlight/50 transition-colors text-textMuted hover:text-primary group"
                   >
-                      <PlusIcon size={32} />
-                      <span className="text-sm font-medium">New Folder</span>
+                      <div className="w-14 h-14 flex items-center justify-center border-2 border-dashed border-surfaceHighlight rounded-xl group-hover:border-primary/50 transition-colors">
+                        <PlusIcon size={24} />
+                      </div>
+                      <span className="text-xs font-medium">New Folder</span>
                   </button>
               </div>
           );

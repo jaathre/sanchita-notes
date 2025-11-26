@@ -50,6 +50,29 @@ export const useStorage = () => {
     }
   }, []);
 
+  // Auto-Cleanup unused folders
+  useEffect(() => {
+      // Calculate all folder IDs currently in use by non-deleted notes
+      const usedFolderIds = new Set<string>();
+      notes.forEach(n => {
+          if (!n.isDeleted) {
+              n.folderIds.forEach(id => usedFolderIds.add(id));
+          }
+      });
+
+      setFolders(prev => {
+          // Filter out any folders that are not in the used set
+          const newFolders = prev.filter(f => usedFolderIds.has(f.id));
+          
+          // Only update state and localStorage if there is an actual change
+          if (newFolders.length !== prev.length) {
+              localStorage.setItem(FOLDERS_KEY, JSON.stringify(newFolders));
+              return newFolders;
+          }
+          return prev;
+      });
+  }, [notes]);
+
   const saveNote = useCallback((note: Note) => {
     setNotes(prev => {
       const existingIndex = prev.findIndex(n => n.id === note.id);
