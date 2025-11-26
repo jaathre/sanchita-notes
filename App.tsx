@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useStorage } from './services/storageService';
 import { Note, Folder, ViewState, Theme } from './types';
@@ -58,52 +57,54 @@ const TopBar: React.FC<{
     };
 
     return (
-        <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur z-50 px-4 h-14 border-b border-surfaceHighlight flex items-center justify-between transition-all">
-            {isSearchOpen ? (
-                <div className="flex-1 flex items-center animate-fade-in">
-                    <input 
-                        ref={inputRef}
-                        type="text" 
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            onSearchChange(e.target.value);
-                        }}
-                        onBlur={handleSearchBlur}
-                        placeholder={searchPlaceholder}
-                        className="w-full bg-transparent text-textMain text-lg outline-none placeholder-textMuted"
-                    />
-                    <button onClick={() => setIsSearchOpen(false)} className="p-2 text-textMuted hover:text-textMain">
-                        <XIcon size={20} />
-                    </button>
-                </div>
-            ) : (
-                <>
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {onBack && (
-                            <button onClick={onBack} className="p-1 -ml-1 text-textMuted hover:text-textMain">
-                                <ChevronLeftIcon />
+        <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur z-50 pt-safe px-4 border-b border-surfaceHighlight transition-all">
+            <div className="h-14 flex items-center justify-between w-full max-w-5xl mx-auto">
+                {isSearchOpen ? (
+                    <div className="flex-1 flex items-center animate-fade-in">
+                        <input 
+                            ref={inputRef}
+                            type="text" 
+                            value={query}
+                            onChange={(e) => {
+                                setQuery(e.target.value);
+                                onSearchChange(e.target.value);
+                            }}
+                            onBlur={handleSearchBlur}
+                            placeholder={searchPlaceholder}
+                            className="w-full bg-transparent text-textMain text-lg outline-none placeholder-textMuted"
+                        />
+                        <button onClick={() => setIsSearchOpen(false)} className="p-2 text-textMuted hover:text-textMain">
+                            <XIcon size={20} />
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {onBack && (
+                                <button onClick={onBack} className="p-1 -ml-1 text-textMuted hover:text-textMain">
+                                    <ChevronLeftIcon />
+                                </button>
+                            )}
+                            <h1 className="text-xl font-bold text-textMain truncate">{title}</h1>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                             {extraAction}
+                             <button 
+                                onClick={onToggleSelect} 
+                                className={`p-2 rounded-full transition-colors ${isSelectionMode ? 'bg-primary/20 text-primary' : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}`}
+                            >
+                                <SelectIcon size={22} />
                             </button>
-                        )}
-                        <h1 className="text-xl font-bold text-textMain truncate">{title}</h1>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                         {extraAction}
-                         <button 
-                            onClick={onToggleSelect} 
-                            className={`p-2 rounded-full transition-colors ${isSelectionMode ? 'bg-primary/20 text-primary' : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}`}
-                        >
-                            <SelectIcon size={22} />
-                        </button>
-                        <button 
-                            onClick={() => setIsSearchOpen(true)} 
-                            className="p-2 rounded-full text-textMuted hover:text-textMain hover:bg-surfaceHighlight transition-colors"
-                        >
-                            <SearchIcon size={22} />
-                        </button>
-                    </div>
-                </>
-            )}
+                            <button 
+                                onClick={() => setIsSearchOpen(true)} 
+                                className="p-2 rounded-full text-textMuted hover:text-textMain hover:bg-surfaceHighlight transition-colors"
+                            >
+                                <SearchIcon size={22} />
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 };
@@ -336,60 +337,62 @@ const EditorView: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-background z-[60] flex flex-col h-full animate-slide-up">
+    <div className="fixed inset-0 bg-background z-[60] flex flex-col h-dvh animate-slide-up">
       {/* Top Bar for Editor - Z-Index increased to 50 to stay above folder row */}
-      <div className="relative flex items-center justify-between px-4 py-3 bg-background border-b border-surfaceHighlight z-50 shadow-sm shrink-0">
-        <button onClick={onClose} className="p-2 -ml-2 text-textMuted hover:text-textMain">
-          <ChevronLeftIcon />
-        </button>
-        <div className="flex items-center gap-2" ref={menuRef}>
-            {isEditing && (
-                <button onClick={handleSave} className="p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 active:bg-primary/40 transition-colors">
-                    <CheckIcon size={20} />
-                </button>
-            )}
-            <button 
-                onClick={() => setShowMenu(!showMenu)}
-                className={`p-2 rounded-full transition-colors ${showMenu ? 'bg-surfaceHighlight text-textMain' : 'text-textMuted hover:text-textMain'}`}
-            >
-                <MoreVerticalIcon size={20} />
+      <div className="relative pt-safe bg-background border-b border-surfaceHighlight z-50 shadow-sm shrink-0">
+        <div className="h-14 flex items-center justify-between px-4">
+            <button onClick={onClose} className="p-2 -ml-2 text-textMuted hover:text-textMain">
+            <ChevronLeftIcon />
             </button>
+            <div className="flex items-center gap-2" ref={menuRef}>
+                {isEditing && (
+                    <button onClick={handleSave} className="p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 active:bg-primary/40 transition-colors">
+                        <CheckIcon size={20} />
+                    </button>
+                )}
+                <button 
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`p-2 rounded-full transition-colors ${showMenu ? 'bg-surfaceHighlight text-textMain' : 'text-textMuted hover:text-textMain'}`}
+                >
+                    <MoreVerticalIcon size={20} />
+                </button>
 
-            {/* Dropdown Menu */}
-            {showMenu && (
-                <div className="absolute top-14 right-4 bg-surface border border-surfaceHighlight rounded-xl shadow-2xl z-[70] min-w-[160px] animate-fade-in overflow-hidden flex flex-col">
-                    {!isEditing && (
+                {/* Dropdown Menu */}
+                {showMenu && (
+                    <div className="absolute top-14 right-4 bg-surface border border-surfaceHighlight rounded-xl shadow-2xl z-[70] min-w-[160px] animate-fade-in overflow-hidden flex flex-col">
+                        {!isEditing && (
+                            <button 
+                                onClick={() => {
+                                    setIsEditing(true);
+                                    setShowMenu(false);
+                                }}
+                                className="w-full text-left px-4 py-3 text-textMain hover:bg-surfaceHighlight flex items-center gap-2 transition-colors border-b border-surfaceHighlight/50"
+                            >
+                                <EditIcon size={18}/> <span className="font-medium text-sm">Edit Note</span>
+                            </button>
+                        )}
                         <button 
                             onClick={() => {
-                                setIsEditing(true);
+                                navigator.clipboard.writeText(content);
                                 setShowMenu(false);
                             }}
                             className="w-full text-left px-4 py-3 text-textMain hover:bg-surfaceHighlight flex items-center gap-2 transition-colors border-b border-surfaceHighlight/50"
                         >
-                            <EditIcon size={18}/> <span className="font-medium text-sm">Edit Note</span>
+                            <CopyIcon size={18}/> <span className="font-medium text-sm">Copy Text</span>
                         </button>
-                    )}
-                    <button 
-                        onClick={() => {
-                            navigator.clipboard.writeText(content);
-                            setShowMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-textMain hover:bg-surfaceHighlight flex items-center gap-2 transition-colors border-b border-surfaceHighlight/50"
-                    >
-                        <CopyIcon size={18}/> <span className="font-medium text-sm">Copy Text</span>
-                    </button>
-                    <button 
-                        onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }}
-                        className="w-full text-left px-4 py-3 text-red-400 hover:bg-surfaceHighlight flex items-center gap-2 transition-colors"
-                    >
-                        <TrashIcon size={18}/> <span className="font-medium text-sm">Delete Note</span>
-                    </button>
-                </div>
-            )}
+                        <button 
+                            onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }}
+                            className="w-full text-left px-4 py-3 text-red-400 hover:bg-surfaceHighlight flex items-center gap-2 transition-colors"
+                        >
+                            <TrashIcon size={18}/> <span className="font-medium text-sm">Delete Note</span>
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative pb-safe">
           <div className="relative z-40 bg-surface/50 border-b border-surfaceHighlight shrink-0">
                 {/* Row 1: Folder Input */}
                 <div ref={folderWrapperRef} className="flex items-center px-4 py-2 gap-2 relative">
@@ -685,7 +688,7 @@ const App = () => {
       // Default List View (Home/Folders/Tags)
       if (view === 'folders' && !activeFolderId) {
           return (
-              <div className="grid grid-cols-3 gap-4 p-4 pt-20 pb-24">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-4 p-4 pt-20 pb-24 max-w-5xl mx-auto">
                   {folders.map(folder => (
                       <button 
                         key={folder.id} 
@@ -722,7 +725,7 @@ const App = () => {
       if (view === 'tags' && !activeTag) {
            const allTags = Array.from(new Set(notes.filter(n => !n.isDeleted).flatMap(n => n.tags)));
            return (
-               <div className="p-4 pt-20 pb-24">
+               <div className="p-4 pt-20 pb-24 max-w-5xl mx-auto">
                    <div className="flex flex-wrap gap-2">
                        {allTags.map(tag => (
                            <button 
@@ -743,7 +746,7 @@ const App = () => {
       }
 
       return (
-          <div className="p-4 pt-20 pb-24 space-y-3 min-h-screen">
+          <div className="p-4 pt-20 pb-24 space-y-3 min-h-screen max-w-5xl mx-auto">
               {activeFolderId && (
                   <div className="flex items-center gap-2 text-sm text-textMuted mb-2">
                       <FolderIcon size={14} /> 

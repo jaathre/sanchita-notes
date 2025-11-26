@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HomeIcon, FolderIcon, PlusIcon, HashIcon, SettingsIcon } from './Icons';
 import { ViewState } from '../types';
@@ -25,8 +24,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onAddClic
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-lg border-t border-surfaceHighlight pb-safe pt-1 px-4 pb-2 z-50">
-      <div className="flex items-center justify-between max-w-lg mx-auto relative">
+    <div className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-lg border-t border-surfaceHighlight pb-safe pt-1 px-4 z-50">
+      <div className="flex items-center justify-between max-w-lg mx-auto relative pb-2">
         <NavItem tab="home" icon={HomeIcon} label="Home" />
         <NavItem tab="folders" icon={FolderIcon} label="Folders" />
         
